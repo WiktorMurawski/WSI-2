@@ -219,3 +219,9 @@ class SlipperyGridWorld:
             self.goal_row_column = goal
         r, c = self._agent_row_column
         self._agent_row_column = (min(max(r, 0), rows - 1), min(max(c, 0), cols - 1))
+
+    def is_wall(self, r: int, c: int) -> bool:
+        return False
+
+    def is_cliff(self, r: int, c: int) -> bool:
+        return False

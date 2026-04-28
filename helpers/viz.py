@@ -24,38 +24,50 @@ def _base_grid_figure(env, title: str = ""):
     ax.set_title(title)
     return fig, ax
 
+# ====================== UPDATED VISUALIZATION FUNCTIONS ======================
+
 def plot_policy(
     env: SlipperyGridWorld,
     policy: np.ndarray,
     filename: Optional[str] = None,
     title: str = "Policy",
 ) -> None:
-    """Visualize policy for each state
-
-    Args:
-        env (SlipperyGridWorld): Initialized environment.
-        policy (np.ndarray): Policy (deterministic action per each state).
-        filename (Optional[str], optional): Where to save the plot. Defaults to None.
-        title (str, optional): Defaults to "Policy".
-        
-    """
+    """Visualize policy with support for walls and cliffs."""
     fig, ax = _base_grid_figure(env, title=title)
 
     sr, sc = env.start_row_column
     gr, gc = env.goal_row_column
-    ax.text(sc, sr, "S", ha="center", va="center", fontsize=14, fontweight="bold")
-    ax.text(gc, gr, "G", ha="center", va="center", fontsize=14, fontweight="bold")
+    
+    ax.text(sc, sr, "S", ha="center", va="center", fontsize=14, fontweight="bold", color="green")
+    ax.text(gc, gr, "G", ha="center", va="center", fontsize=14, fontweight="bold", color="green")
 
     for s in range(env.num_states):
         r, c = env.state_to_row_column(s)
+        
+        # Skip start and goal
         if (r, c) in [env.start_row_column, env.goal_row_column]:
             continue
+            
+        # Wall
+        if hasattr(env, 'is_wall') and env.is_wall(r, c):
+            ax.add_patch(plt.Rectangle((c-0.4, r-0.4), 0.8, 0.8, color='black', alpha=0.9))
+            ax.text(c, r, "■", ha="center", va="center", fontsize=18, color="white")
+            continue
+            
+        # Cliff
+        if hasattr(env, 'is_cliff') and env.is_cliff(r, c):
+            ax.add_patch(plt.Rectangle((c-0.4, r-0.4), 0.8, 0.8, color='red', alpha=0.6))
+            ax.text(c, r, "☠", ha="center", va="center", fontsize=14, color="darkred")
+            continue
+            
+        # Normal state - show policy arrow
         a = int(policy[s])
-        ax.text(c, r, ARROWS[a], ha="center", va="center", fontsize=14)
+        ax.text(c, r, ARROWS[a], ha="center", va="center", fontsize=16, fontweight="bold")
 
     if filename:
         fig.savefig(filename, dpi=200, bbox_inches="tight")
     plt.show()
+
 
 def plot_value_heatmap(
     env,
@@ -63,32 +75,102 @@ def plot_value_heatmap(
     filename: Optional[str] = None,
     title: str = "State Value",
 ) -> None:
-    """Produces a heatmap image for V(s).
+    """Produces a heatmap with walls and cliffs clearly marked."""
+    V_grid = V.reshape(env.rows, env.cols).copy()
+    
+    fig, ax = plt.subplots(figsize=(10, 8))
+    im = ax.imshow(V_grid, cmap='viridis')
 
-    Args:
-        env (SlipperyGridWorld): Initialized environment.
-        V (np.ndarray): V(s)
-        filename (Optional[str], optional): Where to save the plot. Defaults to None.
-        title (str, optional): Defaults to "State Value".
-
-    """
-    V_grid = V.reshape(env.rows, env.cols)
-    fig, ax = plt.subplots()
-    im = ax.imshow(V_grid)
-
-    ax.set_title(title)
+    ax.set_title(title, fontsize=14)
     ax.set_xticks([])
     ax.set_yticks([])
     plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 
     sr, sc = env.start_row_column
     gr, gc = env.goal_row_column
-    ax.text(sc, sr, "S", ha="center", va="center", fontsize=12, fontweight="bold")
-    ax.text(gc, gr, "G", ha="center", va="center", fontsize=12, fontweight="bold")
+    ax.text(sc, sr, "S", ha="center", va="center", fontsize=14, fontweight="bold", color="lime")
+    ax.text(gc, gr, "G", ha="center", va="center", fontsize=14, fontweight="bold", color="lime")
+
+    # Mark walls and cliffs
+    for r in range(env.rows):
+        for c in range(env.cols):
+            if hasattr(env, 'is_wall') and env.is_wall(r, c):
+                ax.add_patch(plt.Rectangle((c-0.5, r-0.5), 1, 1, color='black', alpha=0.85))
+                ax.text(c, r, "■", ha="center", va="center", fontsize=20, color="white")
+            
+            elif hasattr(env, 'is_cliff') and env.is_cliff(r, c):
+                ax.add_patch(plt.Rectangle((c-0.5, r-0.5), 1, 1, color='red', alpha=0.7))
+                ax.text(c, r, "☠", ha="center", va="center", fontsize=16, color="yellow")
 
     if filename:
         fig.savefig(filename, dpi=200, bbox_inches="tight")
     plt.show()
+
+# def plot_policy(
+#     env: SlipperyGridWorld,
+#     policy: np.ndarray,
+#     filename: Optional[str] = None,
+#     title: str = "Policy",
+# ) -> None:
+#     """Visualize policy for each state
+
+#     Args:
+#         env (SlipperyGridWorld): Initialized environment.
+#         policy (np.ndarray): Policy (deterministic action per each state).
+#         filename (Optional[str], optional): Where to save the plot. Defaults to None.
+#         title (str, optional): Defaults to "Policy".
+        
+#     """
+#     fig, ax = _base_grid_figure(env, title=title)
+
+#     sr, sc = env.start_row_column
+#     gr, gc = env.goal_row_column
+#     ax.text(sc, sr, "S", ha="center", va="center", fontsize=14, fontweight="bold")
+#     ax.text(gc, gr, "G", ha="center", va="center", fontsize=14, fontweight="bold")
+
+#     for s in range(env.num_states):
+#         r, c = env.state_to_row_column(s)
+#         if (r, c) in [env.start_row_column, env.goal_row_column]:
+#             continue
+#         a = int(policy[s])
+#         ax.text(c, r, ARROWS[a], ha="center", va="center", fontsize=14)
+
+#     if filename:
+#         fig.savefig(filename, dpi=200, bbox_inches="tight")
+#     plt.show()
+
+# def plot_value_heatmap(
+#     env,
+#     V: np.ndarray,
+#     filename: Optional[str] = None,
+#     title: str = "State Value",
+# ) -> None:
+#     """Produces a heatmap image for V(s).
+
+#     Args:
+#         env (SlipperyGridWorld): Initialized environment.
+#         V (np.ndarray): V(s)
+#         filename (Optional[str], optional): Where to save the plot. Defaults to None.
+#         title (str, optional): Defaults to "State Value".
+
+#     """
+#     V_grid = V.reshape(env.rows, env.cols)
+#     fig, ax = plt.subplots()
+#     im = ax.imshow(V_grid)
+
+#     ax.set_title(title)
+#     ax.set_xticks([])
+#     ax.set_yticks([])
+#     plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+#     sr, sc = env.start_row_column
+#     gr, gc = env.goal_row_column
+#     ax.text(sc, sr, "S", ha="center", va="center", fontsize=12, fontweight="bold")
+#     ax.text(gc, gr, "G", ha="center", va="center", fontsize=12, fontweight="bold")
+
+#     if filename:
+#         fig.savefig(filename, dpi=200, bbox_inches="tight")
+#     plt.show()
 
 def render_episode_frames(
     env:SlipperyGridWorld,
